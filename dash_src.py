@@ -204,7 +204,7 @@ def update_map(date_option, selector, sub_selector):
         subs = list(d_dataframe[selector].unique())
         subs.append('Total')
         sub_options = [{'label': str(x), 'value': x if type(x) != np.bool_ else str(x)} for x in subs]
-        if sub_selector != 'total' and list(filter(lambda x: x['label'] == sub_selector, sub_options)):
+        if sub_selector != 'Total' and list(filter(lambda x: x['label'] == sub_selector, sub_options)):
             c_name = sub_selector
         else:
             c_name = 'Total'
