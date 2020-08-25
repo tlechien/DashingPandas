@@ -1,14 +1,14 @@
+import datetime
+import time
+
 import dash
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as d_html
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import dash_bootstrap_components as dbc
-import time
-import plotly.graph_objects as go
 from dateutil.relativedelta import relativedelta
-import datetime
 
 
 # !/usr/bin/env python
@@ -81,14 +81,10 @@ def get_time_frame(dataframe, start, end):
 # Pandas data acquisition
 
 dataframe = load_csv("D:\\Users\\Utilisateur\\Desktop\\Python\\DashingPandas\\shootings.csv")
-# dataframe = dataframe.groupby(['state', 'date', 'manner_of_death', 'armed', 'gender', 'race', 'city',
-#                                'signs_of_mental_illness', 'threat_level', 'flee', 'body_camera', 'arms_category'])[
-#     ['age']].mean()
 dataframe = dataframe.groupby(['state', 'date', 'manner_of_death', 'armed', 'gender', 'race', 'city',
                                'signs_of_mental_illness', 'threat_level', 'flee', 'body_camera', 'arms_category'])[
     ['age']].mean()
 dataframe.reset_index(inplace=True)
-# d_dates = dataframe["date"].dt.year.unique()
 d_dates = pd.to_datetime(dataframe["date"])
 
 # ---------DEBUG------------
@@ -120,7 +116,6 @@ app.layout = d_html.Div(
             ], className="col-md-4"),
         ], className="row m-0"),
         d_html.Div([
-            # d_html.Div([], className="col-md-1"),
             d_html.Div([
                 d_html.H5(children='Options')
             ], className="col-md-1"),
@@ -132,19 +127,20 @@ app.layout = d_html.Div(
                              [2, 3, 4, 5, 7, 8, 9, 10, 11, 12]],
                     value="race",
                     style={"color": "#111111"}
-                )
+                ),
             ], className="col-md-3"),
             d_html.Div([
                 dcc.Dropdown(
                     id="sub_dropdown_world_map",
-                    value="total",
+                    value="Total",
+                    clearable=False,
                     style={"color": "#111111"}
-                )
+                ),
             ], className="col-md-3"),
         ], className="row m-0"),
         d_html.Div([
             d_html.Br(),
-            dcc.Graph(id="world_map", figure={}),
+            dcc.Graph(id="world_map", figure={}, style={"height": "70vh", "width": "100%"}),
         ]),
         d_html.Div([
             d_html.Br(),
@@ -159,9 +155,6 @@ app.layout = d_html.Div(
                 marks=get_marks(d_dates.min(), d_dates.max()),
             ),
         ]),
-        d_html.Div([
-            # dcc.Graph(id="world_map", figure={}),
-        ]),
     ])
 )
 
@@ -171,7 +164,8 @@ app.layout = d_html.Div(
 
 @app.callback(
     [dash.dependencies.Output(component_id='world_map', component_property='figure'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='options')],
+     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='options'),
+     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='style')],
     [dash.dependencies.Input(component_id="slider_world_map", component_property='value'),
      dash.dependencies.Input(component_id="dropdown_world_map", component_property='value'),
      dash.dependencies.Input(component_id="sub_dropdown_world_map", component_property='value')])
@@ -182,64 +176,63 @@ def update_map(date_option, selector, sub_selector):
     :param selector: dropdown option for main-selector
     :param date_option: slider range
     :return: fig: map figure
+    :return: sub_options: sub-selector options
+    :return show: style for displayed or hidden sub-selector
     """
     # ---------DEBUG------------
-    x = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[0] / 1000.0))
-    y = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[1] / 1000.0))
-    print("date :",date_option[0], "~", x, "|", date_option[1], "~", y)
-    print(f"date_option type: {type(date_option)} | selector type: {type(selector)}")
-    print("selector:",selector)
+    # x = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[0] / 1000.0))
+    # y = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[1] / 1000.0))
+    # print("date :", date_option[0], "~", x, "|", date_option[1], "~", y)
+    # print(f"date_option type: {type(date_option)} | selector type: {type(selector)}")
+    # print("selector:", selector, " | ", sub_selector)
+    # print(f"type select: {type(selector)} | type sub: {type(sub_selector)}")
     # --------------------------
 
     # Dataframe copy and range selection from slider
     d_dataframe = dataframe.copy()
+    if selector == 'signs_of_mental_illness':
+        d_dataframe['signs_of_mental_illness'] = d_dataframe['signs_of_mental_illness'].astype(str)
+    elif selector == 'body_camera':
+        d_dataframe['body_camera'] = d_dataframe['body_camera'].astype(str)
     d_dataframe = get_time_frame(d_dataframe, date_option[0], date_option[1])
 
-    # Dataframe data selection from dropdown
+    # Dataframe data selection from dropdowns
     c_name = selector
-    sub_options = None
-    subselector = False
+    sub_options = []
+    subs = ['age']
     if selector != "age":
-        sub_options = [{'label': x, 'value': x} for x in d_dataframe[selector].unique()]
-        if sub_selector != 'total':
+        subs = list(d_dataframe[selector].unique())
+        subs.append('Total')
+        sub_options = [{'label': str(x), 'value': x if type(x) != np.bool_ else str(x)} for x in subs]
+        if sub_selector != 'total' and list(filter(lambda x: x['label'] == sub_selector, sub_options)):
             c_name = sub_selector
-            d_dataframe = d_dataframe[d_dataframe[selector] == sub_selector]
         else:
-            c_name = 'total'
-        subselector = True
-        d_dataframe = d_dataframe.groupby(['state', selector])[selector].count().reset_index(name=c_name)
+            c_name = 'Total'
+        d_dataframe = d_dataframe.groupby(['state', selector])[selector].count().reset_index(name='count')
+        d_dataframe = d_dataframe.groupby(['state', selector])['count'].aggregate('first').unstack().reset_index()
+        d_dataframe['Total'] = d_dataframe.sum(axis=1)
 
-    # elif selector == "race":
-    #     subselector = True
-    #     c_name = 'total'
-    #     # d_dataframe = d_dataframe.groupby(['state','race']).size().reset_index(name=c_name)
-    #     # d_dataframe = d_dataframe[d_dataframe['race'] == 'Native']
-    #     d_dataframe = d_dataframe.groupby(['state', 'race'])['race'].count().reset_index(name=c_name)
-    #     c_name = 'race'
-
-    # d_dataframe = d_dataframe[d_dataframe["armed"] == "knife"]
-    # d_dataframe = d_dataframe.groupby(['state'])[['age']].mean()
-    # dataframe.reset_index(inplace=True)
     # ---------DEBUG------------
     # print(dataframe.head())
     # print("------------------")
-    print(d_dataframe.head())
+    # print(d_dataframe.head())
     # --------------------------
 
-
     # Map creation from dataframe
+    # color = np.log10(d_dataframe[c_name]) for log color scale
     fig = px.choropleth(
         data_frame=d_dataframe,
         locationmode='USA-states',
         locations='state',
         scope="usa",
         color=c_name,
-        hover_data=['state', c_name],
-        color_continuous_scale="Viridis",  # px.colors.sequential.YlOrRd
-        # labels={'state':'age'},
-        template='plotly_dark'
+        hover_name='state',
+        hover_data=subs,
+        color_continuous_scale="Viridis",
+        template='plotly_dark',
     )
-    return fig, sub_options
+    show = {'display': 'none'} if not sub_options else {"color": "#111111"}
+    return fig, sub_options, show
 
 
 # ------------------------------------------------------------------------------
