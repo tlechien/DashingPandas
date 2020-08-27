@@ -1,6 +1,6 @@
+# !/usr/bin/env python
 import datetime
 import time
-
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
@@ -11,7 +11,6 @@ import plotly.express as px
 from dateutil.relativedelta import relativedelta
 
 
-# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # ------------------------------------------------------------------------------
@@ -80,17 +79,12 @@ def get_time_frame(dataframe, start, end):
 
 # Pandas data acquisition
 
-dataframe = load_csv("D:\\Users\\Utilisateur\\Desktop\\Python\\DashingPandas\\shootings.csv")
+dataframe = load_csv("./shootings.csv")
 dataframe = dataframe.groupby(['state', 'date', 'manner_of_death', 'armed', 'gender', 'race', 'city',
                                'signs_of_mental_illness', 'threat_level', 'flee', 'body_camera', 'arms_category'])[
     ['age']].mean()
 dataframe.reset_index(inplace=True)
 d_dates = pd.to_datetime(dataframe["date"])
-
-# ---------DEBUG------------
-# print(d_dates)
-# dataframe.info()
-# --------------------------
 
 # Dash initialization
 
@@ -98,7 +92,6 @@ app = dash.Dash("Data Analysis", external_stylesheets=[dbc.themes.DARKLY])
 app.title = "Police Shootings in USA : Data analysis."
 
 app.layout = d_html.Div(
-
     d_html.Div([
         d_html.Div([
             d_html.Div([], className="col-md-3"),
@@ -137,6 +130,28 @@ app.layout = d_html.Div(
                     style={"color": "#111111"}
                 ),
             ], className="col-md-3"),
+            d_html.Div([
+                dcc.RadioItems(
+                    id="radio_world_map",
+                    options=[
+                        {'label': "  cardinal", 'value': "cardinal"},
+                        {'label': "  ratio", 'value': "ratio"}
+                    ],
+                    value="cardinal",
+                    labelStyle={'margin-right': '5px', 'text-align': 'center', 'margin-left': '2px'},
+                    style={"color": "#F9F9F9", 'display': 'flex', 'position': 'relative', 'top': '15%'}
+                ),
+            ], className="col-md-3"),
+            d_html.Div([], className="col-md-1"),
+            d_html.Div([
+                dcc.Dropdown(
+                    id="map_style",
+                    options=[{'label': x['y'][0], 'value': x['y'][0]} for x in px.colors.sequential.swatches().data],
+                    value="Viridis",
+                    style={"color": "#111111"}
+                ),
+            ], className="col-md-2")
+
         ], className="row m-0"),
         d_html.Div([
             d_html.Br(),
@@ -165,28 +180,26 @@ app.layout = d_html.Div(
 @app.callback(
     [dash.dependencies.Output(component_id='world_map', component_property='figure'),
      dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='options'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='style')],
+     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='style'),
+     dash.dependencies.Output(component_id="radio_world_map", component_property='style')],
     [dash.dependencies.Input(component_id="slider_world_map", component_property='value'),
      dash.dependencies.Input(component_id="dropdown_world_map", component_property='value'),
-     dash.dependencies.Input(component_id="sub_dropdown_world_map", component_property='value')])
-def update_map(date_option, selector, sub_selector):
+     dash.dependencies.Input(component_id="sub_dropdown_world_map", component_property='value'),
+     dash.dependencies.Input(component_id="radio_world_map", component_property='value'),
+     dash.dependencies.Input(component_id="map_style", component_property='value')])
+def update_map(date_option, selector, sub_selector, radio, map_style):
     """
         Socket function to update the world_map accordingly to sliders positions.
+    :param map_style: style of the map
+    :param radio: selector cardinal/ratio
     :param sub_selector: dropdown option for sub-selector
     :param selector: dropdown option for main-selector
     :param date_option: slider range
     :return: fig: map figure
     :return: sub_options: sub-selector options
-    :return show: style for displayed or hidden sub-selector
+    :return show: style for sub-selector
+    :return show2: style for radioitem
     """
-    # ---------DEBUG------------
-    # x = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[0] / 1000.0))
-    # y = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(date_option[1] / 1000.0))
-    # print("date :", date_option[0], "~", x, "|", date_option[1], "~", y)
-    # print(f"date_option type: {type(date_option)} | selector type: {type(selector)}")
-    # print("selector:", selector, " | ", sub_selector)
-    # print(f"type select: {type(selector)} | type sub: {type(sub_selector)}")
-    # --------------------------
 
     # Dataframe copy and range selection from slider
     d_dataframe = dataframe.copy()
@@ -211,12 +224,12 @@ def update_map(date_option, selector, sub_selector):
         d_dataframe = d_dataframe.groupby(['state', selector])[selector].count().reset_index(name='count')
         d_dataframe = d_dataframe.groupby(['state', selector])['count'].aggregate('first').unstack().reset_index()
         d_dataframe['Total'] = d_dataframe.sum(axis=1)
-
-    # ---------DEBUG------------
-    # print(dataframe.head())
-    # print("------------------")
-    # print(d_dataframe.head())
-    # --------------------------
+        if radio == "ratio" and c_name != "Total":
+            for x in subs[:-1]:
+                d_dataframe[f"{x}%"] = d_dataframe[x] / d_dataframe["Total"] * 100
+            c_name = sub_selector + "%"
+            subs = [f"{sub}%" for sub in subs[:-1]]
+    d_dataframe.fillna(0, inplace=True)
 
     # Map creation from dataframe
     # color = np.log10(d_dataframe[c_name]) for log color scale
@@ -226,13 +239,16 @@ def update_map(date_option, selector, sub_selector):
         locations='state',
         scope="usa",
         color=c_name,
+        range_color=(d_dataframe.min()[c_name], d_dataframe.max()[c_name]),
         hover_name='state',
-        hover_data=subs,
-        color_continuous_scale="Viridis",
+        hover_data={sub: ":.1f" for sub in subs},
+        color_continuous_scale=map_style,
         template='plotly_dark',
     )
     show = {'display': 'none'} if not sub_options else {"color": "#111111"}
-    return fig, sub_options, show
+    show2 = {'display': 'none'} if not sub_options or c_name == "Total" else {'display': 'flex', 'position': 'relative',
+                                                                              'top': '15%'}
+    return fig, sub_options, show, show2
 
 
 # ------------------------------------------------------------------------------
@@ -240,4 +256,4 @@ if __name__ == '__main__':
     pd.options.display.max_columns = None
 
     # Dash webserver setup
-    app.run_server(host="127.0.0.1", port=8080, debug=True)
+    app.run_server(host="127.0.0.1", port=6060, debug=True)
