@@ -119,6 +119,7 @@ app.layout = d_html.Div(
                     options=[{'label': dataframe.columns[x], 'value': dataframe.columns[x]} for x in
                              [2, 3, 4, 5, 7, 8, 9, 10, 11, 12]],
                     value="race",
+                    clearable=False,
                     style={"color": "#111111"}
                 ),
             ], className="col-md-3"),
@@ -148,6 +149,7 @@ app.layout = d_html.Div(
                     id="map_style",
                     options=[{'label': x['y'][0], 'value': x['y'][0]} for x in px.colors.sequential.swatches().data],
                     value="Viridis",
+                    clearable=False,
                     style={"color": "#111111"}
                 ),
             ], className="col-md-2")
