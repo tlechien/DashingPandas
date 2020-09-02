@@ -153,25 +153,26 @@ app.layout = d_html.Div(
                     style={"color": "#111111"}
                 ),
             ], className="col-md-2")
-
         ], className="row m-0"),
         d_html.Div([
             d_html.Br(),
             dcc.Graph(id="world_map", figure={}, style={"height": "70vh", "width": "100%"}),
         ]),
         d_html.Div([
-            d_html.Br(),
-            dcc.RangeSlider(
-                id='slider_world_map',
-                updatemode='mouseup',
-                step=None,
-                min=unix_time_millis(d_dates.min()),
-                max=unix_time_millis(d_dates.max()),
-                value=[unix_time_millis(d_dates.min()),
-                       unix_time_millis(d_dates.max())],
-                marks=get_marks(d_dates.min(), d_dates.max()),
-            ),
-        ]),
+            d_html.Div([
+                d_html.Br(),
+                dcc.RangeSlider(
+                    id='slider_world_map',
+                    updatemode='mouseup',
+                    step=None,
+                    min=unix_time_millis(d_dates.min()),
+                    max=unix_time_millis(d_dates.max()),
+                    value=[unix_time_millis(d_dates.min()),
+                           unix_time_millis(d_dates.max())],
+                    marks=get_marks(d_dates.min(), d_dates.max()),
+                ),
+            ], className="col-md-12"),
+        ], className="row m-0"),
     ])
 )
 
