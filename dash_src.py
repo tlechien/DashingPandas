@@ -56,7 +56,7 @@ def get_marks(start, end):
         current += relativedelta(months=1)
     return {int(unix_time_millis(m)): {'label': (str(m.strftime('%Y-%m'))),
                                        'style': {'transform': 'rotate(-90deg) translateY(-305%)',
-                                                 'transformOrigin': 'right top', 'textAlign': 'left'}, } for m in
+                                                 'transformOrigin': 'right top', 'textAlign': 'left', 'width': 'fit-content'}} for m in
             result}
 
 
