@@ -17,6 +17,9 @@ python3 dash_src.py
 ```
 Then open https://127.0.0.01:6060 in your favorite web browser.
 
+OR
+
+open the [slides-deck](slides-deck.html) to get a demo of the project.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
