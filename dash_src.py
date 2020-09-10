@@ -134,10 +134,15 @@ world_map_rs = dict(
 )
 div_menu_l1 = dict(children=[
     d_html.Div([d_html.H5(children='Options')], className="col-md-1"),
-    d_html.Div([], className="col-md-11"),
-    d_html.Div([dcc.Dropdown(id="dropdown_world_map", **world_map_dd)], className="col-md-3"),
-    d_html.Div([dcc.Dropdown(id="sub_dropdown_world_map", **world_map_sdd)], className="col-md-3"),
-    d_html.Div([dcc.RadioItems(id="radio_world_map", **world_map_ri)], className="col-md-2"),
+    d_html.Div([], className="col-md-9"),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-dd', 'index': 2}, **world_map_dd)], className="col-md-1",
+               style={'display': 'none'}),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-sdd', 'index': 2}, **world_map_sdd)], className="col-md-1",
+               style={'display': 'none'}),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-dd', 'index': 1}, **world_map_dd)], className="col-md-3"),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-sdd', 'index': 1}, **world_map_sdd)], className="col-md-3"),
+    d_html.Div([dcc.RadioItems(id="radio_world_map", **world_map_ri)], className="col-md-2",
+               style={'display': 'hidden'}),
     d_html.Div([d_html.Button("Enable comparison", id="comparison",
                               style={'display': 'flex', 'position': 'relative', 'top': '15%', 'float': 'right'})],
                className="col-md-2"),
@@ -151,24 +156,37 @@ div_menu_l2 = dict(children=[
                className="col-md-2"),
     d_html.Div([dcc.Dropdown(id="map_style", **map_style)], className="col-md-2"),
     d_html.Div([d_html.Br()], className="col-md-12"),
-    d_html.Div([dcc.Dropdown(id="dropdown_world_map", **world_map_dd)], className="col-md-2"),
-    d_html.Div([dcc.Dropdown(id="sub_dropdown_world_map", **world_map_sdd)], className="col-md-2"),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-dd', 'index': 1}, **world_map_dd)], className="col-md-2"),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-sdd', 'index': 1}, **world_map_sdd)], className="col-md-2"),
     d_html.Div([], className="col-md-1"),
-    d_html.Div([dcc.RadioItems(id="radio_world_map", **world_map_ri)], className="col-md-2"),
+    d_html.Div([dcc.RadioItems(id="radio_world_map", **world_map_ri)], className="col-md-2",
+               style={'display': 'hidden'}),
     d_html.Div([], className="col-md-1"),
-    d_html.Div([dcc.Dropdown(id="dropdown_world_map2", **world_map_dd)], className="col-md-2"),
-    d_html.Div([dcc.Dropdown(id="sub_dropdown_world_map2", **world_map_sdd)], className="col-md-2")
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-dd', 'index': 2}, **world_map_dd)], className="col-md-2"),
+    d_html.Div([dcc.Dropdown(id={'type': 'dynamic-sdd', 'index': 2}, **world_map_sdd)], className="col-md-2")
 ])
 div_map_l1 = dict(children=[
     d_html.Br(),
-    dcc.Graph(id="world_map", style={"height": "70vh", "width": "100%"}),
-    dcc.Graph(id="world_map2", style={'display': 'none'})
+    dcc.Graph(id={
+        'type': 'dynamic-map',
+        'index': 1
+    }, style={"height": "70vh", "width": "100%"}),
+    dcc.Graph(id={
+        'type': 'dynamic-map',
+        'index': 2
+    }, style={'display': 'none'})
 ])
 div_map_l2 = dict(children=[
     d_html.Br(),
     d_html.Div([
-        d_html.Div([dcc.Graph(id="world_map", style={"height": "70vh"})], id="map_1", className="col-md-6"),
-        d_html.Div([dcc.Graph(id="world_map2", style={"height": "70vh"})], id="map_2", className="col-md-6")
+        d_html.Div([dcc.Graph(id={
+            'type': 'dynamic-map',
+            'index': 1
+        }, style={"height": "70vh"})], id="map_1", className="col-md-6"),
+        d_html.Div([dcc.Graph(id={
+            'type': 'dynamic-map',
+            'index': 2
+        }, style={"height": "70vh"})], id="map_2", className="col-md-6")
     ], className="row m-0")
 ])
 
@@ -180,10 +198,11 @@ app.layout = d_html.Div(
         dcc.Store(id="map_update"),
         d_html.Div(id="output-clientside"),
         d_html.Div([
-            d_html.Div([], className="col-md-3"),
+            d_html.Div([], className="col-md-2"),
             d_html.Div([
-                d_html.H1(children='Police Shootings in USA : Data analysis', style={'textAlign': 'center'}),
-            ], className="col-md-6"),
+                d_html.H1(children='Police Shootings in USA : Data analysis',
+                          style={'textAlign': 'center', 'font-size': '3.5vw'}),
+            ], className="col-md-8"),
         ], className="row m-0"),
         d_html.Div([d_html.Div([], className="col-md-12")], className="row m-0"),
         d_html.Div([
@@ -196,7 +215,7 @@ app.layout = d_html.Div(
             d_html.Div(**div_menu_l2, id="div_menus", className="row m-0"),
             d_html.Div(**div_map_l1, id='div_map'),
             d_html.Div([
-                d_html.Div([d_html.Br(), dcc.RangeSlider(**world_map_rs)], className="col-md-12"),
+                d_html.Div([d_html.Br(), dcc.RangeSlider(**world_map_rs), d_html.Br(), d_html.Br()], className="col-md-12"),
             ], id="div_timeline", className="row m-0"),
         ], id="Layout1"),
     ])
@@ -277,9 +296,13 @@ def update_map(date_option, selector, sub_selector, radio, map_style):
     [dash.dependencies.Input(component_id="comparison", component_property='n_clicks')],
     [dash.dependencies.State(component_id="menu_state", component_property='data')]
 )
-def select_menu(click, state):
-    # Debug
-    print(f"Val:{click} | state:{state}")
+def enable_comparison(click, state):
+    """
+        Update layout to allow/disallow comparison when button is pressed.
+    :param click: button click
+    :param state: stored value of the map_layout
+    :return: new layouts and state value
+    """
     if state:
         return div_menu_l2["children"], div_map_l2["children"], 0
     else:
@@ -287,14 +310,14 @@ def select_menu(click, state):
 
 
 @app.callback(
-    [dash.dependencies.Output(component_id='world_map', component_property='figure'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='options'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='style'),
+    [dash.dependencies.Output(component_id={'type': 'dynamic-map', 'index': 1}, component_property='figure'),
+     dash.dependencies.Output(component_id={'type': 'dynamic-sdd', 'index': 1}, component_property='options'),
+     dash.dependencies.Output(component_id={'type': 'dynamic-sdd', 'index': 1}, component_property='style'),
      dash.dependencies.Output(component_id="radio_world_map", component_property='style'),
      dash.dependencies.Output(component_id="map_update", component_property='data')],
     [dash.dependencies.Input(component_id="slider_world_map", component_property='value'),
-     dash.dependencies.Input(component_id="dropdown_world_map", component_property='value'),
-     dash.dependencies.Input(component_id="sub_dropdown_world_map", component_property='value'),
+     dash.dependencies.Input(component_id={'type': 'dynamic-dd', 'index': 1}, component_property='value'),
+     dash.dependencies.Input(component_id={'type': 'dynamic-sdd', 'index': 1}, component_property='value'),
      dash.dependencies.Input(component_id="radio_world_map", component_property='value'),
      dash.dependencies.Input(component_id="map_style", component_property='value'),
      dash.dependencies.Input(component_id="menu_state", component_property='data')]
@@ -304,21 +327,20 @@ def update_map1(date_option, selector, sub_selector, radio, map_style, m_state):
 
 
 @app.callback(
-    [dash.dependencies.Output(component_id='world_map2', component_property='figure'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map2", component_property='options'),
-     dash.dependencies.Output(component_id="sub_dropdown_world_map2", component_property='style')],
+    [dash.dependencies.Output(component_id={'type': 'dynamic-map', 'index': 2}, component_property='figure'),
+     dash.dependencies.Output(component_id={'type': 'dynamic-sdd', 'index': 2}, component_property='options'),
+     dash.dependencies.Output(component_id={'type': 'dynamic-sdd', 'index': 2}, component_property='style')],
     [dash.dependencies.Input(component_id="map_update", component_property='data'),
-     dash.dependencies.Input(component_id="dropdown_world_map2", component_property='value'),
-     dash.dependencies.Input(component_id="sub_dropdown_world_map2", component_property='value')],
+     dash.dependencies.Input(component_id={'type': 'dynamic-dd', 'index': 2}, component_property='value'),
+     dash.dependencies.Input(component_id={'type': 'dynamic-sdd', 'index': 2}, component_property='value')],
     [dash.dependencies.State(component_id="menu_state", component_property='data'),
      dash.dependencies.State(component_id="slider_world_map", component_property='value'),
      dash.dependencies.State(component_id="radio_world_map", component_property='value'),
      dash.dependencies.State(component_id="map_style", component_property='value')]
 )
 def update_map2(map_update, selector, sub_selector, state, date_option, radio, map_style):
-    if not state or not selector or not sub_selector:
+    if state:
         raise dash.exceptions.PreventUpdate
-    print("here")
     return update_map(date_option, selector, sub_selector, radio, map_style)[:3]
 
 
@@ -327,4 +349,4 @@ if __name__ == '__main__':
     pd.options.display.max_columns = None
 
     # Dash webserver setup
-    app.run_server(host="127.0.0.1", port=6060, debug=True)
+    app.run_server(host="127.0.0.1", port=6060, debug=False)
