@@ -90,16 +90,11 @@ d_dates = pd.to_datetime(dataframe["date"])
 
 # Dash initialization
 
-app = dash.Dash("Data Analysis", external_stylesheets=[dbc.themes.DARKLY])
+app = dash.Dash("Data Analysis", external_stylesheets=[dbc.themes.DARKLY], suppress_callback_exceptions=True)
 app.title = "Police Shootings in USA : Data analysis."
 
 # Elements content
 
-comp_cl = dict(
-    options=[{'label': 'Enable Comparison', 'value': 1}],
-    value=[0],
-    style={"color": "#F9F9F9", 'display': 'flex', 'position': 'relative', 'top': '15%', 'float': 'right'}
-)
 world_map_dd = dict(
     options=[{'label': dataframe.columns[x], 'value': dataframe.columns[x]} for x in
              [2, 3, 4, 5, 7, 8, 9, 10, 11, 12]],
@@ -143,13 +138,17 @@ div_menu_l1 = dict(children=[
     d_html.Div([dcc.Dropdown(id="dropdown_world_map", **world_map_dd)], className="col-md-3"),
     d_html.Div([dcc.Dropdown(id="sub_dropdown_world_map", **world_map_sdd)], className="col-md-3"),
     d_html.Div([dcc.RadioItems(id="radio_world_map", **world_map_ri)], className="col-md-2"),
-    d_html.Div([dcc.Checklist(id="comparison", **comp_cl)], className="col-md-2"),
+    d_html.Div([d_html.Button("Enable comparison", id="comparison",
+                              style={'display': 'flex', 'position': 'relative', 'top': '15%', 'float': 'right'})],
+               className="col-md-2"),
     d_html.Div([dcc.Dropdown(id="map_style", **map_style)], className="col-md-2")
 ])
 div_menu_l2 = dict(children=[
     d_html.Div([d_html.H5(children='Options')], className="col-md-1"),
     d_html.Div([], className="col-md-7"),
-    d_html.Div([dcc.Checklist(id="comparison", **comp_cl)], className="col-md-2"),
+    d_html.Div([d_html.Button("Disable comparison", id="comparison",
+                              style={'display': 'flex', 'position': 'relative', 'top': '15%', 'float': 'right'})],
+               className="col-md-2"),
     d_html.Div([dcc.Dropdown(id="map_style", **map_style)], className="col-md-2"),
     d_html.Div([d_html.Br()], className="col-md-12"),
     d_html.Div([dcc.Dropdown(id="dropdown_world_map", **world_map_dd)], className="col-md-2"),
@@ -178,6 +177,7 @@ div_map_l2 = dict(children=[
 app.layout = d_html.Div(
     d_html.Div([
         dcc.Store(id="menu_state"),
+        dcc.Store(id="map_update"),
         d_html.Div(id="output-clientside"),
         d_html.Div([
             d_html.Div([], className="col-md-3"),
@@ -269,55 +269,29 @@ def update_map(date_option, selector, sub_selector, radio, map_style):
                                                                               'top': '15%'}
     return fig, sub_options, show, show2
 
-@app.callback(
-    [dash.dependencies.Output(component_id="menu_state", component_property='data')],
-    [dash.dependencies.Input(component_id="comparison", component_property='value')],
-    [dash.dependencies.State(component_id="menu_state", component_property='data')]
-)
-def select_menu(val, state):
-    # Debug
-    print(f"Val:{val} | state:{state}")
-    if len(val) == 2 and state == 1:
-        return [2]
-    elif len(val) == 1 and (not state or state == 2):
-        return [1]
-    else:
-        raise dash.exceptions.PreventUpdate
 
 @app.callback(
     [dash.dependencies.Output(component_id='div_menus', component_property='children'),
      dash.dependencies.Output(component_id='div_map', component_property='children'),
-     dash.dependencies.Output(component_id='comparison', component_property='value')],
-    [dash.dependencies.Input(component_id="menu_state", component_property='data')]
+     dash.dependencies.Output(component_id="menu_state", component_property='data')],
+    [dash.dependencies.Input(component_id="comparison", component_property='n_clicks')],
+    [dash.dependencies.State(component_id="menu_state", component_property='data')]
 )
-def switch_layout(state):
+def select_menu(click, state):
     # Debug
-    print(f"State:{state}")
-    if state and state == 2:
-        print("2")
-        return div_menu_l2["children"], div_map_l2["children"], [0,1]
-    elif state and state == 1:
-        print("1")
-        return div_menu_l1["children"], div_map_l1["children"], [0]
+    print(f"Val:{click} | state:{state}")
+    if state:
+        return div_menu_l2["children"], div_map_l2["children"], 0
     else:
-        raise dash.exceptions.PreventUpdate
+        return div_menu_l1["children"], div_map_l1["children"], 1
 
-# @app.callback(
-#     [dash.dependencies.Output(component_id='div_map_alt', component_property='children')],
-#     [dash.dependencies.Input(component_id='div_menus', component_property='children')],
-#     [dash.dependencies.State(component_id="menu_state", component_property='data')]
-# )
-# def grr(trigger, state):
-#     if state and state == 2:
-#         return div_map_l3["children"]
-#     elif state and state == 1:
-#         return div_map_l2["children"]
 
 @app.callback(
     [dash.dependencies.Output(component_id='world_map', component_property='figure'),
      dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='options'),
      dash.dependencies.Output(component_id="sub_dropdown_world_map", component_property='style'),
-     dash.dependencies.Output(component_id="radio_world_map", component_property='style')],
+     dash.dependencies.Output(component_id="radio_world_map", component_property='style'),
+     dash.dependencies.Output(component_id="map_update", component_property='data')],
     [dash.dependencies.Input(component_id="slider_world_map", component_property='value'),
      dash.dependencies.Input(component_id="dropdown_world_map", component_property='value'),
      dash.dependencies.Input(component_id="sub_dropdown_world_map", component_property='value'),
@@ -326,22 +300,23 @@ def switch_layout(state):
      dash.dependencies.Input(component_id="menu_state", component_property='data')]
 )
 def update_map1(date_option, selector, sub_selector, radio, map_style, m_state):
-    return update_map(date_option, selector, sub_selector, radio, map_style)
+    return list(update_map(date_option, selector, sub_selector, radio, map_style)) + [1]
+
 
 @app.callback(
     [dash.dependencies.Output(component_id='world_map2', component_property='figure'),
      dash.dependencies.Output(component_id="sub_dropdown_world_map2", component_property='options'),
      dash.dependencies.Output(component_id="sub_dropdown_world_map2", component_property='style')],
-    [dash.dependencies.Input(component_id="slider_world_map", component_property='value'),
+    [dash.dependencies.Input(component_id="map_update", component_property='data'),
      dash.dependencies.Input(component_id="dropdown_world_map2", component_property='value'),
-     dash.dependencies.Input(component_id="sub_dropdown_world_map2", component_property='value'),
-     dash.dependencies.Input(component_id="radio_world_map", component_property='value'),
-     dash.dependencies.Input(component_id="map_style", component_property='value')],
-    [dash.dependencies.State(component_id="menu_state", component_property='data')]
+     dash.dependencies.Input(component_id="sub_dropdown_world_map2", component_property='value')],
+    [dash.dependencies.State(component_id="menu_state", component_property='data'),
+     dash.dependencies.State(component_id="slider_world_map", component_property='value'),
+     dash.dependencies.State(component_id="radio_world_map", component_property='value'),
+     dash.dependencies.State(component_id="map_style", component_property='value')]
 )
-def update_map2(date_option, selector, sub_selector, radio, map_style, state):
-    print(state)
-    if state == 1:
+def update_map2(map_update, selector, sub_selector, state, date_option, radio, map_style):
+    if not state or not selector or not sub_selector:
         raise dash.exceptions.PreventUpdate
     print("here")
     return update_map(date_option, selector, sub_selector, radio, map_style)[:3]
